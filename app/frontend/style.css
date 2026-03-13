@@ -122,3 +122,6 @@ border:none;
 padding:10px 15px;
 cursor:pointer;
 }
+#close-btn{
+    cursor: pointer;
+}

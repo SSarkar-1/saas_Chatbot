@@ -5,9 +5,7 @@ from typing import List
 from unstructured.partition.pdf import partition_pdf
 
 
-from dotenv import load_dotenv
 
-load_dotenv()
 
 def partition_document(file_path:str):
     """Extract element from PDF using unstructured"""

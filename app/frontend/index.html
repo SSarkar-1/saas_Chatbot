@@ -1,34 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>AI Assistant</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
+
 
 <body>
 
-<!-- Chat toggle button -->
-<div id="chat-toggle">💬</div>
+    <!-- Chat toggle button -->
+    <div id="chat-toggle">💬</div>
 
-<!-- Chat container -->
-<div id="chat-container">
+    <!-- Chat container -->
+    <div id="chat-container">
 
-    <div id="chat-header">
-        AI Assistant
-        <span id="close-btn">✖</span>
+        <div id="chat-header">
+            AI Assistant
+            <span id="close-btn">✖</span>
+        </div>
+
+        <div id="chat-messages"></div>
+
+        <div id="chat-input-area">
+            <input id="chat-input" type="text" placeholder="Ask something...">
+            <button id="send-btn" type="button">Send</button>
+        </div>
+
     </div>
 
-    <div id="chat-messages"></div>
-
-    <div id="chat-input-area">
-        <input id="chat-input" type="text" placeholder="Ask something...">
-        <button id="send-btn">Send</button>
-    </div>
-
-</div>
-
-<script src="chat.js"></script>
+    <script src="chat.js"></script>
 
 </body>
+
 </html>
