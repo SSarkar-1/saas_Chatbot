@@ -1,14 +1,32 @@
 import json
+from typing import List, Dict
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
 
-async def generate_final_answer_stream(query, chunks):
+def format_history(history: List[Dict[str, str]]) -> str:
+    if not history:
+        return "None"
+    lines = []
+    for turn in history:
+        role = turn.get("role", "user")
+        text = turn.get("text", "")
+        prefix = "User" if role == "user" else "Bot"
+        lines.append(f"{prefix}: {text}")
+    return "\n".join(lines)
+
+
+async def generate_final_answer_stream(query, chunks, history=None):
     """Yield answer tokens as they stream from the OpenAI chat model."""
     try:
         llm = ChatOpenAI(model="gpt-4o", temperature=0, streaming=True)
 
-        prompt_text = f"""Based on the following documents, please answer this question: {query}
+        prompt_text = f"""You are a helpful AI assistant. Use the recent conversation and the provided documents to answer.
+
+CONVERSATION (most recent first):
+{format_history(history or [])}
+
+Current user question: {query}
 
 CONTENT TO ANALYZE: """
 
@@ -31,7 +49,11 @@ CONTENT TO ANALYZE: """
             prompt_text += "\n"
 
         prompt_text += """
-Provide a clear, comprehensive,pointwise answer using the text, tables, and images above even(only test or images or tables may be present).Only if any of the documents don't have sufficient information (text or tables or images) to answer the question, say "I don't have enough information to answer that question based on the provided documents."
+No need to reference any document.
+Please provide a clear, comprehensive,pointwise answer using:
+1) the conversation context above, and
+2) the text, tables, and images in the documents.
+If the conversation and documents don't contain enough information, only and only return "I don't have enough information to answer that question based on the provided documents."
 
 ANSWER:"""
 

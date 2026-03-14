@@ -7,6 +7,7 @@ const chatInput = document.getElementById("chat-input")
 const chatMessages = document.getElementById("chat-messages")
 
 const userIdKey = "chatUserId"
+const sessionIdKey = "chatSessionId"
 
 
 function renderMarkdown(text) {
@@ -31,6 +32,15 @@ function getUserId(){
     if(!id){
         id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)
         localStorage.setItem(userIdKey,id)
+    }
+    return id
+}
+
+function getSessionId(){
+    let id = localStorage.getItem(sessionIdKey)
+    if(!id){
+        id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)
+        localStorage.setItem(sessionIdKey,id)
     }
     return id
 }
@@ -76,8 +86,9 @@ function removeTyping() {
 
 async function loadHistory(){
     const userId = getUserId()
+    const sessionId = getSessionId()
     try{
-        const res = await fetch(`http://localhost:8000/history?user_id=${encodeURIComponent(userId)}`)
+        const res = await fetch(`http://localhost:8000/history?user_id=${encodeURIComponent(userId)}&session_id=${encodeURIComponent(sessionId)}`)
         const data = await res.json()
         if(Array.isArray(data.history)){
             data.history.forEach(entry => addMessage(entry.text, entry.role === "user" ? "user" : "bot"))
@@ -114,7 +125,8 @@ async function sendMessage() {
 
         body: JSON.stringify({
             query: query,
-            user_id: getUserId()
+            user_id: getUserId(),
+            session_id: getSessionId()
         })
 
     })

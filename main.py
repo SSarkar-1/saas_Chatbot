@@ -1,16 +1,23 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+import asyncio
+import re
+from typing import Optional
+
+import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
 from app.retrieval.retriever import load_retriever
 from app.llm.generator import generate_final_answer_stream
 from app.utils.cache import get_cached_answer, store_cached_answer
-from app.utils.history import append_history, get_history
-import uvicorn
-from fastapi.responses import StreamingResponse
-import asyncio
-from fastapi.middleware.cors import CORSMiddleware
-import re
+from app.utils.db import record_message, fetch_history
+from app.llm.query_rewrite import query_rewrite
+
+load_dotenv()
 
 
 app=FastAPI(title="AI Chatbot")
@@ -19,6 +26,7 @@ app=FastAPI(title="AI Chatbot")
 class AskRequest(BaseModel):
     query: str
     user_id: str = "default"
+    session_id: Optional[str] = None
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,28 +45,51 @@ def preprocess_query(text):
     text = re.sub(r'\n', ' ', text)
     text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
     return text
+
 async def stream_answer(payload: AskRequest):
-    query = preprocess_query(payload.query)
     user_id = (payload.user_id or "default").strip()
+    session_id = (payload.session_id or user_id or "default").strip()
+
+    # Load recent conversation context (latest pairs)
+    try:
+        conversation_history = await fetch_history(session_id, keep=4)
+        
+    except Exception as e:
+        print(f"[history] failed to load for context: {e}")
+        conversation_history = []
+
+    rewritten_query = await query_rewrite(query=payload.query, history=conversation_history)
+    query = preprocess_query(rewritten_query)
     
 
     cached = get_cached_answer(query=query)
     if cached:
-        append_history(user_id, query, cached)
+        try:
+            if cached.lower()!="i don't have enough information to answer that question based on the provided documents" and "Error generating answer" not in  cached:
+                await record_message(client_id=user_id, session_id=session_id, query=query, response=cached)
+        except Exception as e:
+            print(f"[history] failed to record cached response: {e}")
+        print("cache hit")
         yield cached
         return
 
-    chunks = await retriever.ainvoke(query)
+    try:
+        chunks = await retriever.ainvoke(query)
+    except AttributeError:
+        chunks = retriever.invoke(query)
     answer_accum = ""
 
-    async for token in generate_final_answer_stream(query=query, chunks=chunks):
+    async for token in generate_final_answer_stream(query=query, chunks=chunks, history=conversation_history):
         answer_accum += token
         yield token
         await asyncio.sleep(0)  # allow other tasks
 
-    if answer_accum:
+    if answer_accum and answer_accum.lower()!="i don't have enough information to answer that question based on the provided documents." and "Error generating answer" not in answer_accum:
         store_cached_answer(query, answer_accum)
-        append_history(user_id, query, answer_accum)
+        try:
+            await record_message(client_id=user_id, session_id=session_id, query=query, response=answer_accum)
+        except Exception as e:
+            print(f"[history] failed to record answer: {e}")
 
 
 @app.post("/ask")
@@ -67,8 +98,13 @@ async def ask(payload: AskRequest):
 
 
 @app.get("/history")
-async def history(user_id: str = "default"):
-    return {"history": get_history(user_id or "default")}
+async def history(user_id: str = "default", session_id: str = "default"):
+    try:
+        history = await fetch_history(session_id or user_id or "default")
+    except Exception as e:
+        print(f"[history] failed to fetch from db: {e}")
+        history = []
+    return {"history": history}
 
 if __name__ == "__main__":
     # For production, use environment variable PORT (set by hosting platforms)

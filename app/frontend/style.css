@@ -172,6 +172,7 @@ body {
 #chat-input {
     flex: 1;
     border: 1px solid var(--border);
+    text-align: left;
     background: #fff;
     padding: 12px 14px;
     border-radius: 12px;
