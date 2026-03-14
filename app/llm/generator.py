@@ -31,7 +31,7 @@ CONTENT TO ANALYZE: """
             prompt_text += "\n"
 
         prompt_text += """
-Please provide a clear, comprehensive answer using the text, tables, and images above. If the documents don't contain sufficient information to answer the question, say "I don't have enough information to answer that question based on the provided documents."
+Provide a clear, comprehensive,pointwise answer using the text, tables, and images above even(only test or images or tables may be present).Only if any of the documents don't have sufficient information (text or tables or images) to answer the question, say "I don't have enough information to answer that question based on the provided documents."
 
 ANSWER:"""
 

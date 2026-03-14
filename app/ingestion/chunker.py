@@ -13,8 +13,8 @@ def chunk_elements_by_title(elements):
 
     chunks=chunk_by_title(
         elements=elements,
-        max_characters=3000,
-        new_after_n_chars=2400,
+        max_characters=800,
+        new_after_n_chars=150,
         combine_text_under_n_chars=500
     )
 

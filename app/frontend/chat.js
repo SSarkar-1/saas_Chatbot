@@ -9,6 +9,12 @@ const chatMessages = document.getElementById("chat-messages")
 const userIdKey = "chatUserId"
 
 
+function renderMarkdown(text) {
+    const raw = text || ""
+    // Sanitize rendered HTML to avoid XSS while preserving formatting
+    return DOMPurify.sanitize(marked.parse(raw))
+}
+
 chatToggle.onclick = () => {
 
     chatContainer.style.display = "flex"
@@ -35,7 +41,7 @@ function addMessage(text,className){
 
     msg.classList.add("message",className)
 
-    msg.innerText = text
+    msg.innerHTML = renderMarkdown(text)
 
     chatMessages.appendChild(msg)
 
@@ -50,7 +56,7 @@ function showTyping() {
 
     typing.id = "typing"
 
-    typing.innerText = "Bot is typing..."
+    typing.innerHTML = `Bot is typing<span class="blinking-cursor">|</span>`
 
     chatMessages.appendChild(typing)
 
@@ -91,15 +97,12 @@ async function sendMessage() {
     addMessage(query, "user")
 
     chatInput.value = ""
+    sendBtn.disabled = true
 
     showTyping()
-    const botMsg = document.createElement("div")
-
-    botMsg.classList.add("message","bot")
-
-    chatMessages.appendChild(botMsg)
-    chatMessages.scrollTop = chatMessages.scrollHeight
-
+    let botMsg = null
+    
+    let botText = ""
     try{
     const response = await fetch("http://localhost:8000/ask", {
 
@@ -125,12 +128,26 @@ const reader = response.body.getReader()
 
         if(done) break
 
-        botMsg.innerText += decoder.decode(value)
+        botText += decoder.decode(value)
+
+        if(!botMsg){
+            botMsg = document.createElement("div")
+            botMsg.classList.add("message","bot","streaming")
+            chatMessages.appendChild(botMsg)
+            removeTyping()
+        }
+
+        botMsg.innerHTML = renderMarkdown(botText)
 
         chatMessages.scrollTop = chatMessages.scrollHeight
 
     }
     }catch(err){
+        if(!botMsg){
+            botMsg = document.createElement("div")
+            botMsg.classList.add("message","bot","streaming")
+            chatMessages.appendChild(botMsg)
+        }
         botMsg.innerText = "Sorry, something went wrong."
         console.error(err)
     }finally{

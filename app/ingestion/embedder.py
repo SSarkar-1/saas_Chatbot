@@ -1,5 +1,8 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def create_vector_store(documents, persist_directory: str = "vector_store/chroma_db"):

@@ -10,6 +10,7 @@ import uvicorn
 from fastapi.responses import StreamingResponse
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
+import re
 
 
 app=FastAPI(title="AI Chatbot")
@@ -30,11 +31,16 @@ app.add_middleware(
 retriever=load_retriever()
 
 
-# def preprocess_query(text):
-#     pass
+def preprocess_query(text):
+    #remove case difference and trailing spaces
+    text=text.lower().strip()
+    text = re.sub(r'\n', ' ', text)
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+    return text
 async def stream_answer(payload: AskRequest):
-    query = payload.query.strip().lower()
+    query = preprocess_query(payload.query)
     user_id = (payload.user_id or "default").strip()
+    
 
     cached = get_cached_answer(query=query)
     if cached:
@@ -42,7 +48,7 @@ async def stream_answer(payload: AskRequest):
         yield cached
         return
 
-    chunks = retriever.invoke(query)
+    chunks = await retriever.ainvoke(query)
     answer_accum = ""
 
     async for token in generate_final_answer_stream(query=query, chunks=chunks):
