@@ -30,7 +30,8 @@ app.add_middleware(
 retriever=load_retriever()
 
 
-
+# def preprocess_query(text):
+#     pass
 async def stream_answer(payload: AskRequest):
     query = payload.query.strip().lower()
     user_id = (payload.user_id or "default").strip()
