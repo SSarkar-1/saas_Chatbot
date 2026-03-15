@@ -1,0 +1,8 @@
+# Prevent sensitive or large local files from bloating the image context
+.git
+.env
+__pycache__/
+chroma_db/
+venv/
+*.py[cod]
+*.log
